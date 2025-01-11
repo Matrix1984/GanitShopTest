@@ -1,0 +1,579 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.14.0/jquery-ui.min.js"
+        integrity="sha256-Fb0zP4jE3JHqu+IBB9YktLcSjI1Zc6J2b6gTjB0LpoM=" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.14.1/themes/base/jquery-ui.css">
+    <meta charset="utf-8" />
+    <title></title>
+
+    <style>
+        table {
+            width: 100%;
+            margin-top: 5em;
+        }
+
+        td {
+            text-align: center;
+        }
+
+        .sort-by-filter {
+            cursor: pointer;
+        }
+
+        .page-button {
+            cursor: pointer;
+            padding: 1em;
+            text-decoration-line: underline;
+            font-weight: bolder;
+        }
+    </style>
+</head>
+
+<body>
+
+
+    <div class="container myClass">
+
+        <div>
+            <button id="create-new-btn" class="ui-button ui-widget ui-corner-all">+ New Product</button>
+        </div>
+
+        <div>
+            <form id="filter_form">
+                <p>
+                    <span>Name</span>
+                    <span><input type="text" id="name_filter" /></span>
+                </p>
+
+                <p>
+                    <span>Code</span>
+                    <span><input type="text" id="code_filter" /></span>
+                </p>
+                <p>
+                    <button id="filter_btn">Filter</button>
+                </p>
+                <p>
+                    <button id="reset_btn">Reset</button>
+                </p>
+            </form>
+
+        </div>
+        <div id="create-new-dialog" title="Create Product">
+            <form id="new-dialog-form">
+
+                <p>
+                    <span>Name</span>
+                    <span><input id="new_name" type="text" value="" /></span>
+                </p>
+
+                <p>
+                    <span>Code</span>
+                    <span><input id="new_code" type="text" value="" /></span>
+                </p>
+
+                <p>
+                    <span>Description</span>
+                    <span><input id="new_description" type="text" value="" /></span>
+                </p>
+
+                <p>
+                    <span>Add Picture</span>
+                    <span><input type="file" name="ProductImage" /></span>
+                </p>
+            </form>
+        </div>
+
+
+        <div id="view-dialog" title="Product Details">
+            <form id="view-form">
+
+                <div>
+                    <p>Id:</p>
+                    <p id="view-id"></p>
+                </div>
+                <div>
+                    <p>Date:</p>
+                    <p id="view-date"> </p>
+                </div>
+                <div>
+                    <p>Code:</p>
+                    <p id="view-code"></p>
+                </div>
+
+                <div>
+                    <p>Name:</p>
+                    <p id="view-name"></p>
+                </div>
+
+                <div>
+                    <p>Description:</span>
+                    <p id="view-description"></p>
+                </div>
+
+                <div>
+                    <img id="view-image" width='150' height='150' src="" />
+                </div>
+            </form>
+        </div>
+
+
+        <div id="edit-dialog" title="Edit Product">
+            <form id="edit-dialog-form">
+                <p>
+                    <span>Code</span>
+                    <span><input id="edit_code" type="text" value="" /></span>
+                </p>
+
+                <p>
+                    <span>Name</span>
+                    <span><input id="edit_name" type="text" value="" /></span>
+                </p>
+
+                <p>
+                    <span>Description</span>
+                    <span><input id="edit_description" type="text" value="" /></span>
+                </p>
+
+                <p>
+                    <span>Add Picture</span>
+                    <span><input type="file" name="ProductImage" /></span>
+                </p>
+                <input id="edit_id" type="hidden" data-id="0" />
+            </form>
+        </div>
+
+        <div>
+            <table>
+                <thead>
+                    <tr class="ui-widget-header ">
+                        <th data-name="id" class="sort-by-filter">Id</th>
+                        <th data-name="creationTime" class="sort-by-filter">Date</th>
+                        <th data-name="code" class="sort-by-filter">Code</th>
+                        <th data-name="name" class="sort-by-filter">Name</th>
+                        <th>Image</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="results-table">
+                </tbody>
+            </table>
+        </div>
+
+        <div id="paginator">
+
+        </div>
+    </div>
+
+
+    <script>
+        var new_product_dialog;
+        var view_dialog;
+        var edit_dialog;
+        var serverUrl = "http://localhost:5097/";
+        var imageUrl = serverUrl + "ProductImages/";
+        var resultCount;
+        var orderByField = "id";
+
+        var orderByAsc = false;
+
+        var sortParamter = "id";
+        var results = [];
+
+
+        function formattedTime(timeToFormat) {
+
+            return timeToFormat?.replace("T", " ").split('.')[0]
+
+        }
+
+        loadAllResults(0, "", "");
+
+        view_dialog = $("#view-dialog").dialog({
+            autoOpen: false,
+            height: 400,
+            width: 350,
+            modal: true,
+            buttons: {
+                "Close": function () {
+                    view_dialog.dialog("close");
+                }
+            },
+            close: function () {
+
+            }
+        });
+
+        new_product_dialog = $("#create-new-dialog").dialog({
+            autoOpen: false,
+            height: 400,
+            width: 350,
+            modal: true,
+            buttons: {
+                "Create new product": addNewProduct,
+                Cancel: function () {
+                    new_product_dialog.dialog("close");
+                }
+            },
+            close: function () {
+
+            }
+        });
+
+        edit_dialog = $("#edit-dialog").dialog({
+            autoOpen: false,
+            height: 400,
+            width: 350,
+            modal: true,
+            buttons: {
+                "Update product": editNewProduct,
+                Cancel: function () {
+                    edit_dialog.dialog("close");
+                }
+            },
+            close: function () {
+
+            }
+        });
+
+        $("#new-dialog-form").submit(function (e) {
+            var url = serverUrl + "Product?";
+            url += "Name=" + $("#new_name").val();
+            url += "&Code=" + $("#new_code").val();
+            url += "&Description=" + $("#new_description").val();
+            e.preventDefault();
+            $.ajax({
+                type: "POST",
+                url: url,
+                crossDomain: true,
+                data: new FormData(this),
+                dataType: "json",
+                contentType: "multipart/form-data",
+                processData: false,
+                contentType: false,
+                headers: {
+                    "Accept": "application/json"
+                }
+            }).done(function (data) {
+                 
+                $('#new-dialog-form').trigger("reset");
+
+                results.unshift(data);
+
+                refreshResult(results);
+
+                new_product_dialog.dialog("close");
+            })
+        });
+
+        $("#edit-dialog-form").submit(function (e) {
+
+            var id = $("#edit_id").attr("data-id");
+
+            var url = serverUrl + "Product?id=" + id;
+            url += "&Name=" + $("#edit_name").val();
+            url += "&Code=" + $("#edit_code").val();
+            url += "&Description=" + $("#edit_description").val();
+            e.preventDefault();
+            $.ajax({
+                type: "PATCH",
+                url: url,
+                crossDomain: true,
+                data: new FormData(this),
+                dataType: "json",
+                contentType: "multipart/form-data",
+                processData: false,
+                contentType: false,
+                headers: {
+                    "Accept": "application/json"
+                }
+            }).done(function (data) {
+
+                var id = $("#edit_id").attr("data-id");
+
+                $.ajax({
+                    type: "GET",
+                    url: serverUrl + 'Product/GetById?id=' + id,
+                    crossDomain: true,
+                    dataType: "json",
+                    contentType: "text/plain",
+                    processData: false,
+                    contentType: false,
+                    headers: {
+                        "Accept": "application/json"
+                    }
+                }).done(function (data) {
+
+                    var arrayLength = results.length;
+
+                    for (let i = 0; i < arrayLength; i++) {
+
+                        if (results[i].id == id) {
+                            results[i] = data;
+                            break;
+                        }
+                    }
+
+                    refreshResult(results);
+
+                    edit_dialog.dialog("close");
+                });
+
+
+            })
+        });
+
+        $("#create-new-btn").on("click", function () {
+            $("#create-new-dialog").dialog("open");
+        });
+
+        $("th.sort-by-filter").on("click", function () {
+
+            sortParamter = $(this).attr("data-name");
+
+            if (orderByField != sortParamter) {
+                orderByField = sortParamter;
+                orderByAsc = true;
+            }
+            else {
+                orderByAsc = !orderByAsc;
+            }
+
+            var code = $("#code_filter").val();
+
+            var name = $("#name_filter").val();
+
+            loadAllResults(0, code, name, sortParamter, orderByAsc)
+
+        });
+
+        $("#filter_btn").on("click", function (e) {
+            e.preventDefault();
+
+
+            var code = $("#code_filter").val();
+
+            var name = $("#name_filter").val();
+
+            loadAllResults(0, code, name);
+        });
+
+
+        $("#create-new-btn").on("click", function () {
+            $("#create-new-dialog").dialog("open");
+        });
+
+
+        $('table').on('click', 'button[class^="view"]', function (data) {
+
+            var id = $(this).attr("data-id");
+
+            $.ajax({
+                type: "GET",
+                url: serverUrl + 'Product/GetById?id=' + id,
+                crossDomain: true,
+                dataType: "json",
+                contentType: "text/plain",
+                processData: false,
+                contentType: false,
+                headers: {
+                    "Accept": "application/json"
+                }
+            }).done(function (data) {
+
+                $("#view-id").text(data.id);
+
+                $("#view-date").text(formattedTime(data.creationTime));
+
+                $("#view-name").text(data.name);
+
+                $("#view-code").text(data.code);
+
+                $("#view-description").text(data.description);
+
+                $("#view-image").attr('src', imageUrl + data.imagePath);
+
+                $("#view-dialog").dialog("open");
+            });
+        });
+
+
+        $('table').on('click', 'button[class^="delete"]', function (data) {
+
+            var id = $(this).attr("data-id");
+
+            $.ajax({
+                type: "DELETE",
+                url: serverUrl + 'Product?id=' + id,
+                crossDomain: true,
+                dataType: "json",
+                contentType: "text/plain",
+                processData: false,
+                contentType: false,
+                headers: {
+                    "Accept": "application/json"
+                }
+            }).done(function (data) {
+                var arrayLength = results.length;
+
+                var indexToDelete = 0;
+
+                for (let i = 0; i < arrayLength; i++) {
+                    if (results[i].id == id) {
+                        results[i] = data;
+                        indexToDelete = i;
+                        break;
+                    }
+                }
+
+                results.splice(indexToDelete, 1);
+
+                refreshResult(results);
+            });
+        });
+
+
+        $('#paginator').on('click', 'span.page-button', function (data) {
+
+            var pageNumber = $(this).attr("data-id");
+
+            var offset = pageNumber * 10;
+
+            var code = $("#code_filter").val();
+
+            var name = $("#name_filter").val();
+
+            console.log("clicked " + offset)
+
+            loadAllResults(offset, code, name, sortParamter, orderByAsc);
+
+        });
+
+
+
+        $('table').on('click', 'button[class^="edit"]', function (data) {
+
+            var id = $(this).attr("data-id");
+
+            $.ajax({
+                type: "GET",
+                url: serverUrl + 'Product/GetById?id=' + id,
+                crossDomain: true,
+                dataType: "json",
+                contentType: "text/plain",
+                processData: false,
+                contentType: false,
+                headers: {
+                    "Accept": "application/json"
+                }
+            }).done(function (data) {
+
+                $("#edit_name").val(data.name);
+
+                $("#edit_code").val(data.code);
+
+                $("#edit_description").val(data.description);
+
+                $("#edit_id").attr("data-id", data.id);
+
+                $("#edit-dialog").dialog("open");
+            });
+        });
+
+
+        function refreshResult(results) {
+            $("#results-table").empty();
+
+            var arrayLength = results.length;
+
+            for (let i = 0; i < arrayLength; i++) { 
+                appendResult(results[i]);
+            }
+        }
+
+
+        function appendResult(data) {
+            $("#results-table").append("<tr class='row-" + data.id + "'>" +
+                "<td>" + data.id + "</td>" +
+                "<td>" + formattedTime(data.creationTime) + "</td>" +
+                "<td>" + data.code + "</td>" +
+                "<td>" + data.name + "</td>" +
+                "<td><img src='" + imageUrl + data.imagePath + "' width='150' height='150'/></td>" +
+                "<td><span><button class='view-" + data.id + "' data-id=" + data.id + ">View</button></span>" +
+                "<span><button class='edit-" + data.id + "' data-id=" + data.id + ">Edit</button></span>" +
+                "<span><button class='delete-" + data.id + "' data-id=" + data.id + ">Delete</button></span></td>" +
+                "</tr>");
+        }
+
+        function addNewProduct() {
+            $("#new-dialog-form").submit();
+        }
+
+        function editNewProduct() {
+            $("#edit-dialog-form").submit();
+        }
+
+        function loadAllResults(offset, code, name, orderBy, asc) {
+
+            if (resultCount > (offset - 10))
+                offset -= 10;
+
+            if (offset < 0)
+                offset = 0;
+
+            var extraFilters = "";
+
+            if (code)
+                extraFilters += "&code=" + code;
+
+            if (name)
+                extraFilters += "&name=" + name;
+
+            if (orderBy)
+                extraFilters += "&orderBy=" + orderBy + "&asc=" + asc;
+
+
+
+            $.ajax({
+                type: "GET",
+                url: serverUrl + 'Product/GetAll?offset=' + offset + extraFilters,
+                crossDomain: true,
+                dataType: "json",
+                contentType: "text/plain",
+                processData: false,
+                contentType: false,
+                headers: {
+                    "Accept": "application/json"
+                }
+            }).done(function (data) {
+
+                $("#results-table").empty();
+
+                results = data.results;
+
+                resultCount = data.metadata.resultsCount;
+
+                var numberPages = Math.ceil(resultCount / 10);
+
+                $("#paginator").empty();
+
+                for (var i = 1; i <= numberPages; i++) {
+                    $("#paginator").append("<span data-id='" + i + "' class='page-button' id='page-'" + i + "'>" + i + "</span>");
+                }
+
+                $.each(results, function (index, row) {
+                    appendResult(row);
+                });
+            });
+        }
+
+
+
+
+    </script>
+
+</body>
+
+</html>

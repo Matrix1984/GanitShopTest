@@ -31,7 +31,7 @@ namespace GanitShop.Controllers
         public async Task<ActionResult> GetById(int id)
         {
             var dto = await _productManager.GetByIdAsync(id);
-             
+
             if (dto == null)
                 return NotFound();
 
@@ -40,23 +40,32 @@ namespace GanitShop.Controllers
 
         [Route("GetAll")]
         [HttpGet]
-        public async Task<ActionResult> GetAll(int offset, string? name, string? code)
+        public async Task<ActionResult> GetAll(int offset, string? name, string? code, string? orderBy, bool asc)
         {
-            var dtos = await _productManager.GetAllAsync(offset, name, code);
+            var orderByPermittedValues = new string[]
+            {
+                "id","code","description","creationTime","name"
+            };
+
+            if (orderBy != null)
+                if (!orderByPermittedValues.Contains(orderBy))
+                    return BadRequest();
+
+            var dtos = await _productManager.GetAllAsync(offset, name, code, orderBy, asc);
 
             return Ok(dtos);
         }
-         
+
         [HttpPatch]
         public async Task<ActionResult> Update(int id, UpdateProductDto updateProductDto)
         {
-            if(id == 0)
+            if (id == 0)
                 return BadRequest();
 
             if (String.IsNullOrEmpty(updateProductDto.Name)
-                & String.IsNullOrEmpty(updateProductDto.Code) 
+                & String.IsNullOrEmpty(updateProductDto.Code)
                 & String.IsNullOrEmpty(updateProductDto.Description)
-                  &  updateProductDto.ProductImage ==null)
+                  & updateProductDto.ProductImage == null)
                 return BadRequest();
 
             var dto = await _productManager.GetByIdAsync(id);

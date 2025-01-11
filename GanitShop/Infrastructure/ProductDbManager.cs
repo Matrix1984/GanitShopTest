@@ -36,6 +36,7 @@ namespace GanitShop.Infrastructure
                     {
                         productDto.Id = Convert.ToInt32(rdr["Id"]);
                         productDto.CreationTime = Convert.ToDateTime(rdr["CreationTime"].ToString());
+                        productDto.ImagePath = String.IsNullOrEmpty(createProductDto.UniqueImageFileName) ? "image-not-found.png": createProductDto.UniqueImageFileName;
                     }
                 }
             }
@@ -58,9 +59,11 @@ namespace GanitShop.Infrastructure
             }
         }
 
-        public async Task<List<ProductDto>> GetAllAsync(int offset, string name, string codeName, int count = 50)
+        public async Task<QueryResults> GetAllAsync(int offset, string name, string codeName, string? orderBy, bool asc,int count = 10)
         {
-            var products = new List<ProductDto>();
+            var queryResults = new QueryResults();
+
+            queryResults.Results = new List<ProductDto>();
 
             string sqlStringCommand = CreateSelectCommand();
 
@@ -75,6 +78,7 @@ namespace GanitShop.Infrastructure
 
                     if (!String.IsNullOrEmpty(codeName))
                         sqlCommand.Parameters.Add(new SqlParameter("@CodeName", codeName));
+                     
 
                     SqlDataReader rdr = sqlCommand.ExecuteReader();
 
@@ -82,12 +86,23 @@ namespace GanitShop.Infrastructure
                     {
                         var product = SQLProductToProductDto(rdr);
 
-                        products.Add(product);
+                        queryResults.Results.Add(product);
                     }
-                }
-            }
 
-            return products;
+                    rdr.Close();
+
+                    sqlCommand.CommandText = CreateSelectCommandCount();
+
+
+                    queryResults.Metadata = new ResultsMetadata()
+                    {
+                        ResultsCount = (Int32)sqlCommand.ExecuteScalar()
+                    };
+                    
+                }
+            }  
+
+            return queryResults;
 
             string CreateSelectCommand()
             {
@@ -112,7 +127,21 @@ namespace GanitShop.Infrastructure
                         sb.Append("AND Code LIKE CONCAT('%',@CodeName,'%') ");
                 }
 
-                sb.Append("ORDER BY Id DESC ");
+                if (!String.IsNullOrEmpty(orderBy))
+                {
+                    sb.Append("ORDER BY " + orderBy );
+
+                    if (asc)
+                        sb.Append(" ASC ");
+                    else
+                        sb.Append(" DESC ");
+
+                }
+                    
+                else
+                {
+                    sb.Append("ORDER BY Id DESC ");
+                } 
 
                 sb.Append("OFFSET " + offset + " ROWS ");
 
@@ -120,7 +149,35 @@ namespace GanitShop.Infrastructure
 
                 return sb.ToString();
             }
+
+            string CreateSelectCommandCount()
+            {
+                StringBuilder sb = new StringBuilder();
+
+                sb.Append("SELECT COUNT(1) FROM Products ");
+
+                bool isWhereClauseUsed = false;
+
+                if (!String.IsNullOrEmpty(name))
+                {
+                    sb.Append("WHERE Name LIKE CONCAT('%',@ProductName,'%') ");
+
+                    isWhereClauseUsed = true;
+                }
+
+                if (!String.IsNullOrEmpty(codeName))
+                {
+                    if (!isWhereClauseUsed)
+                        sb.Append("WHERE Code LIKE CONCAT('%',@CodeName,'%') ");
+                    else
+                        sb.Append("AND Code LIKE CONCAT('%',@CodeName,'%') ");
+                }
+                 
+                return sb.ToString();
+            }
         }
+
+       
 
         public async Task<ProductDto> GetByIdAsync(int id)
         {
@@ -256,10 +313,12 @@ namespace GanitShop.Infrastructure
 
             product.CreationTime = Convert.ToDateTime(rdr["CreationTime"]);
 
-            product.ImagePath = rdr["ImageFilePathName"] != DBNull.Value ? rdr["ImageFilePathName"].ToString() : String.Empty;
+            product.ImagePath = !String.IsNullOrEmpty(rdr["ImageFilePathName"].ToString()) ? rdr["ImageFilePathName"].ToString() : "image-not-found.png"; 
 
             return product;
         }
+
+   
     }
 
 }

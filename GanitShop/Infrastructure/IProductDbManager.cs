@@ -12,6 +12,6 @@ namespace GanitShop.Infrastructure
 
         Task<ProductDto> GetByIdAsync(int id);
 
-        Task<List<ProductDto>> GetAllAsync(int offset, string nameName, string codeName, int count = 50);
+        Task<QueryResults> GetAllAsync(int offset, string nameName, string codeName, string? orderBy, bool asc, int count = 50);
     }
 }

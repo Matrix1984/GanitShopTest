@@ -22,11 +22,17 @@ namespace GanitShop.Infrastructure
 
         public void DeleteFile(string filePath)
         {
-            var uploads = Path.Combine(hostingEnvironment.WebRootPath, "ProductImages");
+            // Deletion of a file can only be implemented after the right system permissions.
+            // Need also to account for concurrent operations on the image.
+            //if (!filePath.Contains("image-not-found"))
+            //{
+            //    var uploads = Path.Combine(hostingEnvironment.WebRootPath, "ProductImages");
 
-            var file = Path.Combine(uploads, filePath);
+            //    var file = Path.Combine(uploads, filePath);
 
-            System.IO.File.Delete(file);
-        } 
+            //    System.IO.File.Delete(file);
+            //}
+
+        }
     }
 }

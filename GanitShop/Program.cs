@@ -1,5 +1,6 @@
 using GanitShop.Infrastructure;
 using GanitShop.Models;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,9 +23,18 @@ builder.Services.AddTransient<IProductDbManager, ProductDbManager>();
 
 builder.Services.AddTransient<IProductFileUploadManager, ProductFileUploadManager>();
 
+builder.Services.AddCors(o => o.AddPolicy("MyPolicy", builder =>
+{
+    builder.AllowAnyOrigin()
+           .AllowAnyMethod()
+           .AllowAnyHeader();
+}));
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+
+app.UseCors("MyPolicy");
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -32,5 +42,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapControllers();
+
+app.UseStaticFiles();
 
 app.Run();

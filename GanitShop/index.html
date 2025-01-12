@@ -29,6 +29,38 @@
             text-decoration-line: underline;
             font-weight: bolder;
         }
+
+        #filter_form {
+            display: flex;
+            flex-direction: row;
+            margin-top: 5em;
+            align-items: center;
+            width: fit-content;
+            margin: auto;
+        }
+
+        #filter_form > p  {
+            width: fit-content;
+
+        }
+
+            #filter_form > p > span> input {
+            margin-right:2em;
+            }
+
+            #filter_form > p > button {
+                margin-right: 2em;
+            }
+
+        .btn-margin {
+            margin-right: 1em;
+        }
+
+        #paginator {
+            width: fit-content;
+            margin: auto;
+            margin-top:2em;
+        }
     </style>
 </head>
 
@@ -44,19 +76,19 @@
         <div>
             <form id="filter_form">
                 <p>
-                    <span>Name</span>
+                    <span>Name: </span>
                     <span><input type="text" id="name_filter" /></span>
                 </p>
 
                 <p>
-                    <span>Code</span>
+                    <span>Code:</span>
                     <span><input type="text" id="code_filter" /></span>
                 </p>
                 <p>
-                    <button id="filter_btn">Filter</button>
+                    <button id="filter_btn" class="ui-button ui-widget ui-corner-all">Filter</button>
                 </p>
                 <p>
-                    <button id="reset_btn">Reset</button>
+                    <button id="reset_btn" class="ui-button ui-widget ui-corner-all">Reset</button>
                 </p>
             </form>
 
@@ -144,15 +176,15 @@
                 <input id="edit_id" type="hidden" data-id="0" />
             </form>
         </div>
-
+       
         <div>
             <table>
                 <thead>
                     <tr class="ui-widget-header ">
-                        <th data-name="id" class="sort-by-filter">Id</th>
-                        <th data-name="creationTime" class="sort-by-filter">Date</th>
-                        <th data-name="code" class="sort-by-filter">Code</th>
-                        <th data-name="name" class="sort-by-filter">Name</th>
+                        <th data-name="id" class="sort-by-filter">Id <span class="ui-icon ui-icon-arrowthick-1-s"></span></th>
+                        <th data-name="creationTime" class="sort-by-filter">Date <span class="ui-icon ui-icon-arrowthick-1-n"></span></th>
+                        <th data-name="code" class="sort-by-filter">Code <span class="ui-icon ui-icon-arrowthick-1-n"></span></th>
+                        <th data-name="name" class="sort-by-filter">Name <span class="ui-icon ui-icon-arrowthick-1-n"></span></th>
                         <th>Image</th>
                         <th>Actions</th>
                     </tr>
@@ -329,9 +361,26 @@
             $("#create-new-dialog").dialog("open");
         });
 
+   
         $("th.sort-by-filter").on("click", function () {
 
             sortParamter = $(this).attr("data-name");
+             
+              $('th.sort-by-filter:not([data-name="' + sortParamter + '"]) > span')
+                .removeClass("ui-icon-arrowthick-1-s")
+                .addClass("ui-icon-arrowthick-1-n");
+
+
+            if ($(this).find("span").hasClass("ui-icon-arrowthick-1-s")) {
+                $(this).find("span").addClass("ui-icon-arrowthick-1-n");
+                $(this).find("span").removeClass("ui-icon-arrowthick-1-s");
+            }
+
+            else {
+                $(this).find("span").addClass("ui-icon-arrowthick-1-s") 
+                $(this).find("span").removeClass("ui-icon-arrowthick-1-n")
+            } 
+             
 
             if (orderByField != sortParamter) {
                 orderByField = sortParamter;
@@ -345,7 +394,9 @@
 
             var name = $("#name_filter").val();
 
-            loadAllResults(0, code, name, sortParamter, orderByAsc)
+            loadAllResults(0, code, name, sortParamter, orderByAsc);
+
+
 
         });
 
@@ -443,9 +494,7 @@
 
             var code = $("#code_filter").val();
 
-            var name = $("#name_filter").val();
-
-            console.log("clicked " + offset)
+            var name = $("#name_filter").val(); 
 
             loadAllResults(offset, code, name, sortParamter, orderByAsc);
 
@@ -492,7 +541,7 @@
                 appendResult(results[i]);
             }
         }
-
+  
 
         function appendResult(data) {
             $("#results-table").append("<tr class='row-" + data.id + "'>" +
@@ -501,9 +550,9 @@
                 "<td>" + data.code + "</td>" +
                 "<td>" + data.name + "</td>" +
                 "<td><img src='" + imageUrl + data.imagePath + "' width='150' height='150'/></td>" +
-                "<td><span><button class='view-" + data.id + "' data-id=" + data.id + ">View</button></span>" +
-                "<span><button class='edit-" + data.id + "' data-id=" + data.id + ">Edit</button></span>" +
-                "<span><button class='delete-" + data.id + "' data-id=" + data.id + ">Delete</button></span></td>" +
+                "<td><span><button class='view-" + data.id + " ui-button ui-widget ui-corner-all btn-margin' data-id=" + data.id + ">View</button></span>" +
+                "<span><button class='edit-" + data.id + " ui-button ui-widget ui-corner-all btn-margin' data-id=" + data.id + ">Edit</button></span>" +
+                "<span><button class='delete-" + data.id + " ui-button ui-widget ui-corner-all btn-margin' data-id=" + data.id + ">Delete</button></span></td>" +
                 "</tr>");
         }
 
